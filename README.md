@@ -1,88 +1,41 @@
-# Vocal2Piano
+# Vocal2Piano: A voice-controlled robot piano accompanist.
 
-A robot piano accompanist. A singer sings, and a robot sitting on a real keyboard plays the piano part along with them.
+An interactive robotic piano accompanist combining music processing, data-driven harmonization, motion planning, and real-time human-robot interaction.
 
-The robot has two hands. Each hand is a carriage with 13 solenoid fingers (7 white-key, 6 black-key) that slides along the keyboard on a belt driven by a stepper motor. A web app prepares the song, plans every move and every key press, and sends them to the robot over USB while the song plays. Once a song is started, the robot runs on its own: the motors move the hands and the solenoids strike the keys.
+<!-- [![Figma UI](https://img.shields.io/badge/Figma-A259FF?style=for-the-badge&logo=figma&logoColor=white)][figma] -->
+[![Website](https://img.shields.io/badge/UI_Website-ff8cc6?style=for-the-badge&logo=vercel&logoColor=white)][live]
+[![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)][youtube]
 
-[![The robot playing on a keyboard](media/Demo.jpg)][youtube]
+![Demo Video](media/Demo.mp4)
 
-**Demo video:** [Vocal2Piano on YouTube][youtube] (also in the repository as [`media/Demo.mp4`](media/Demo.mp4))
-
-**Design:** [Vocal2Piano on Figma][figma]
-
-## How a song gets played
-
-![The web app: Songs and Rehearsal windows](site/media/UI.png)
-
-1. **Choose a song** in the web app: a MIDI file, sheet music (MusicXML), a tune hummed into the microphone, or a built-in chord loop.
-2. **Adjust it** in the app: key, speed, piano style, chords, single bars and single notes. Every change can be heard on the computer's speakers straight away.
-3. **The app plans the robot's playing**: where each hand has to be, which finger presses each key, when the hands move, and how hard each key is struck. It shows what share of the song the robot can play and lists anything it cannot.
-4. **Connect and home the robot** in the app's Robot window, over USB.
-5. **Press Play.** The app streams the plan to the robot a fraction of a second ahead of time. The firmware moves the carriages and fires the solenoids on time, and enforces its own safety limits.
-
-With **Listen** on, the piano also follows the singer while it plays: it waits for each entrance, stops when the singing stops, matches the singer's loudness, and moves to the key being sung.
-
-## System block diagram
-
-![System block diagram: the performance planning software sends timed commands over USB to the C0nTrollER board, which drives the two robot players on the keyboard](media/system-diagram.svg)
-
-| Block | What it does | Where |
-|---|---|---|
-| Song sources | Reads MIDI and MusicXML files, records humming, and offers chord loops from 739 Billboard hits | [`site/src/engine/score.ts`](site/src/engine/score.ts), [`midi.ts`](site/src/engine/midi.ts), [`musicxml.ts`](site/src/engine/musicxml.ts), [`humSession.ts`](site/src/humSession.ts) |
-| Humming → chords | Tracks the hummed pitch, turns it into notes, finds the key, and picks chords with a model learned from pop songs | [`site/src/engine/harmonize.ts`](site/src/engine/harmonize.ts) |
-| Arrangement | Turns chords into a piano part in one of five styles, and applies edits to bars and notes | [`site/src/engine/arranger.ts`](site/src/engine/arranger.ts), [`parts.ts`](site/src/engine/parts.ts) |
-| Planner | Finds where the hands should be at every moment, assigns a finger to each note, and times every move and strike | [`site/src/engine/planner.ts`](site/src/engine/planner.ts), [`robot.ts`](site/src/engine/robot.ts) |
-| Listen | Follows the singer through the microphone while playing | [`site/src/engine/listen.ts`](site/src/engine/listen.ts) |
-| Scheduler and robot link | Plays the speakers and sends the robot's commands on one clock, 0.1–0.3 s ahead | [`site/src/audio.ts`](site/src/audio.ts), [`robotLink.ts`](site/src/robotLink.ts) |
-| Firmware | Queues the timed commands, moves the carriages, fires the solenoids, and keeps the robot safe | [`firmware/`](firmware), protocol in [`firmware/PROTOCOL.md`](firmware/PROTOCOL.md) |
-| C0nTrollER | Main board: power input and protection, 5 V supply, Teensy, two stepper drivers | [`hardware/PCB/`](hardware/PCB) |
-| PLAyeRs | One board per hand: a PCA9685 and 13 MOSFET channels for the solenoids | [`hardware/PCB/`](hardware/PCB) |
-| Mechanics | Carriages, fingers, mounts and enclosure | [`hardware/CAD/`](hardware/CAD) |
-
-## Repository
+## Repo structure
 
 | Folder | Contents |
 |---|---|
-| [`site/`](site) | The web app: React and TypeScript, runs in Chrome or Edge with nothing to install. It has a built-in manual (the **Manual** icon on its desktop) |
-| [`firmware/`](firmware) | Teensy 4.1 firmware (PlatformIO), its serial protocol, and the robot bring-up steps |
-| [`software/`](software) | Offline Python tools: statistics from music datasets, transcribers for local songs, and a player for a robot whose hands are moved by hand |
-| [`hardware/CAD/`](hardware/CAD) | Fusion 360 models of the robot |
+| [`site/`](site) | The web app (React, TypeScript, Vite). Runs in Chrome or Edge with nothing to install, and has a built-in **Manual** |
+| [`firmware/`](firmware) | Teensy 4.1 firmware (PlatformIO), the serial protocol, the safety rules and the bring-up steps for a new robot |
+| [`software/`](software) | Offline Python tools: statistics from music datasets, transcribers for local songs, and a player for a robot whose carriages are moved by hand |
 | [`hardware/PCB/`](hardware/PCB) | KiCad boards C0nTrollER and PLAyeRs, with fabrication files |
-| [`media/`](media) | The demo video, its still, and the system block diagram |
+| [`hardware/CAD/`](hardware/CAD) | Fusion 360 models of the robot |
 | [`legacy/`](legacy) | The first version (Python pipeline, Max/MSP patch, old firmware), kept for reference |
 
-## Quick start
+## How it works
 
-The web app on a computer:
+![System block diagram: the performance planning software sends timed commands over USB to the C0nTrollER board, which drives the two robot players on the keyboard](media/system-diagram.svg)
 
-```bash
-cd site
-npm install
-npm run dev      # opens on http://localhost:5173
-```
+The system has three layers. Software on a computer decides what to play and when, a controller board turns timed commands into motor steps and solenoid pulses, and two robot players on the keyboard move and strike the keys.
 
-The firmware on the Teensy, with [PlatformIO](https://platformio.org/):
+- **Web app** ([`site/`](site/README.md)). A browser app in React and TypeScript that runs in Chrome or Edge with nothing to install. It reads MIDI and MusicXML, or turns a hummed tune into notes, a key and chords with a hidden Markov model trained on pop songs. It arranges the chords into a piano part, and lets every bar and note be edited and heard on the speakers. A planner then fits the part to the robot: where each player should be at every moment, which finger strikes each key, when the players move, and how much solenoid current is drawn. During a performance it streams timestamped commands to the robot over Web Serial, and with Listen on it follows the singer through the microphone.
 
-```bash
-cd firmware
-pio run -t upload
-```
+- **Firmware** ([`firmware/`](firmware/README.md)). Teensy 4.1 code that runs each command at its timestamp from a time-sorted queue. It steps both motors from a timer interrupt, shapes each solenoid strike (a velocity-controlled pulse, then a low-duty hold), and enforces the robot's safety limits on its own: hold time, total current, the gap between the players, end-stop checks, and a full stop when USB drops. The serial protocol is in [`PROTOCOL.md`](firmware/PROTOCOL.md).
 
-Then, in the app: **Robot → Connect…**, **Home** (or **Set home here** on a robot without end stops), tick **Play on the real robot**, and **▶ Play** in **Rehearsal**. The app's **Manual** covers every step, and [`firmware/README.md`](firmware/README.md) covers the first power-up and calibration of a new robot.
+- **Electronics** ([`hardware/PCB/`](hardware/PCB/README.md)). Two 4-layer KiCad boards. **C0nTrollER** takes 12 V through a fuse, TVS and reverse-polarity guard, makes 5 V with a buck converter, and carries the Teensy and two TMC2209 stepper drivers. **PLAyeRs**, one per player, drives 13 solenoids from a PCA9685 PWM chip through logic-level MOSFETs with flyback diodes and a status LED on every channel.
 
-## Safety
+- **Mechanics** ([`hardware/CAD/`](hardware/CAD/README.md)). Fusion 360 design of two carriages that ride the length of the keyboard on GT2 belts driven by NEMA17 steppers. Each carriage holds 13 solenoid fingers, 7 for white keys and 6 for black keys, covering one octave, all inside an enclosure that sits on top of the keyboard.
 
-The firmware applies these limits whatever the app sends:
+- **Offline tools** ([`software/`](software/README.md)). Python scripts that build the harmonizer's statistics from the McGill Billboard and POP909 datasets, transcribe local songs, and play a song on a robot whose carriages are positioned by hand.
 
-- no solenoid stays on longer than 2 s;
-- no more than 4 A of solenoid current at once;
-- the two hands always keep at least 5 free white keys between them;
-- no move past either end of the keyboard;
-- a closed page or a pulled USB cable stops everything.
 
-## Local songs
-
-Scores and recordings to transcribe go in `software/input/`, and the transcriptions in `site/local/`. Both folders are ignored by git and left out of the web deployment, because transcriptions of other people's songs are for private practice, not for publishing.
-
-[youtube]: https://www.youtube.com/
-[figma]: https://www.figma.com/
+[youtube]:https://www.youtube.com/watch?v=shSAkz8AxsA&t=3s
+[live]: https://vocal2piano.vercel.app
+<!-- [figma]: https://www.figma.com/ -->
