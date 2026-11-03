@@ -9,7 +9,7 @@ import {
   KEY_LOW,
   MAX_POS,
   ROBOT,
-  WHITE_FINGERS,
+  MIN_W1_GAP,
   fingerFor,
   moveTime,
   noteName,
@@ -83,9 +83,9 @@ export function plan(song: Song, opts: PlanOptions): Plan {
   }
 
   // 4. Carriage paths. Treble (usually the melody side) is planned first,
-  //    then bass, which must stay at least one carriage-width to its left.
-  const treblePath = solvePath(slices, "treble", opts.fold, WHITE_FINGERS, MAX_POS, null);
-  const bassPath = solvePath(slices, "bass", opts.fold, 0, MAX_POS - WHITE_FINGERS, treblePath);
+  //    then bass, which must stay to its left with HAND_GAP white keys free between them.
+  const treblePath = solvePath(slices, "treble", opts.fold, MIN_W1_GAP, MAX_POS, null);
+  const bassPath = solvePath(slices, "bass", opts.fold, 0, MAX_POS - MIN_W1_GAP, treblePath);
   const paths: Record<CarriageId, number[]> = { bass: bassPath, treble: treblePath };
 
   // 5. Give every note a finger, on either carriage, folding by octave if allowed.
@@ -163,10 +163,10 @@ export function plan(song: Song, opts: PlanOptions): Plan {
     }
   }
 
-  // 8. Current budget: full current during the strike, holdDuty afterwards.
+  // 8. Current budget: full current for the strike and while fully on, holdDuty afterwards.
   const edges: [number, number][] = [];
   for (const s of strikes) {
-    const strikeEnd = Math.min(s.time + ROBOT.strikeTime, s.time + s.duration);
+    const strikeEnd = Math.min(s.time + Math.max(ROBOT.strikeTime, ROBOT.fullPress), s.time + s.duration);
     edges.push([s.time, ROBOT.solenoidAmps], [strikeEnd, -ROBOT.solenoidAmps * (1 - ROBOT.holdDuty)]);
     edges.push([s.time + s.duration, -ROBOT.solenoidAmps * ROBOT.holdDuty]);
   }
@@ -226,7 +226,7 @@ function solvePath(slices: Slice[], c: CarriageId, fold: boolean, lo: number, hi
   const n = slices.length;
   if (n === 0) return [];
   const P = hi - lo + 1;
-  const ceiling = (t: number) => (partner ? Math.min(partner[t], partner[Math.max(0, t - 1)]) - WHITE_FINGERS : hi);
+  const ceiling = (t: number) => (partner ? Math.min(partner[t], partner[Math.max(0, t - 1)]) - MIN_W1_GAP : hi);
   const cost: Float64Array[] = [];
   const back: Int16Array[] = [];
 

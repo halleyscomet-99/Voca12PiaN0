@@ -163,6 +163,9 @@ export function WelcomeWindow({ onOpen, onClose }: { onOpen: (id: string) => voi
         ))}
       </ol>
       <div className="row end">
+        <button className="btn" onClick={() => onOpen("manual")}>
+          Manual…
+        </button>
         <button className="btn" onClick={onClose}>
           OK
         </button>

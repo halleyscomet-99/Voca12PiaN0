@@ -780,23 +780,23 @@ input[type="range"]::-moz-range-thumb {
   height: 100%;
 }
 
-.stage-caption {
-  position: absolute;
-  left: 8px;
-  top: 18px;
-  max-width: calc(100% - 16px);
-  padding: 2px 6px;
+/* ---------- Camera ---------- */
+
+.camera {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  object-fit: cover;
   background: #000;
-  border: 1px solid #404040;
-  color: #aaa;
-  pointer-events: none;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.stage-caption b {
-  color: #fff;
+.camera.mirror {
+  transform: scaleX(-1);
+}
+
+.camera-size {
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Track view ---------- */
@@ -1169,4 +1169,90 @@ input[type="range"]::-moz-range-thumb {
   .track-head input[type="range"] {
     display: none;
   }
+}
+
+/* ---------- Manual ---------- */
+
+.manual {
+  flex-direction: row;
+}
+
+.manual-toc {
+  flex: none;
+  width: 190px;
+  margin: 0;
+  overflow: auto;
+}
+
+.manual-toc li {
+  display: block;
+  padding: 3px 6px;
+}
+
+.manual-toc li.sel {
+  background: var(--navy);
+  color: #fff;
+}
+
+.manual-page {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.manual-text {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 8px 12px;
+  background: #fff;
+  line-height: 1.45;
+}
+
+.manual-text h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.manual-text p,
+.manual-text ul,
+.manual-text ol,
+.manual-text dl {
+  margin: 0 0 10px;
+}
+
+.manual-text li {
+  margin-bottom: 4px;
+}
+
+.manual-text dt {
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+.manual-text dd {
+  margin: 2px 0 0 16px;
+}
+
+.manual-text code {
+  font-family: var(--mono);
+}
+
+@media (max-width: 640px) {
+  .manual {
+    flex-direction: column;
+  }
+
+  .manual-toc {
+    width: auto;
+    max-height: 120px;
+  }
+}
+
+.robot-next {
+  display: block;
+  margin: 2px 0 4px;
+  color: var(--ink-dim);
 }

@@ -258,7 +258,7 @@ def evaluate(data, emit, bb):
         roots = [c for _, _, c in bars if c and c[1]]
         if not roots:
             continue
-        # tonic = annotated key (relative degree 0 in our absolute pcs is the first key); take most frequent root
+        # tonic = annotated key (relative degree 0 in these absolute pcs is the first key); take most frequent root
         tonic = max(set(r[0] for r in roots), key=lambda p: sum(1 for r in roots if r[0] == p))
         minor = sum(1 for r in roots if r == (tonic, "min")) > sum(1 for r in roots if r == (tonic, "maj"))
         S = MIN if minor else MAJ

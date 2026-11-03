@@ -1,4 +1,8 @@
-# PCB： Design
+# PCB design
+
+Two KiCad boards: one controller and two identical solenoid boards, one per hand.
+
+![The two PLAyeRs boards (top) and the C0nTrollER board (bottom), assembled](media/Soldered_PCBs.jpg)
 
 | Board | Role | Size | Qty |
 |---|---|---|---|
@@ -36,7 +40,7 @@ Both PLAyeRs boards share one I²C bus. The board with the A0 solder jumper brid
 - **PCA9685.** It gives 16 PWM outputs over two I²C wires. One chip per player board covers all 13 keys, and the PWM can vary how hard a key is struck.
 - **TMC2209.** A very quiet stepper driver, which matters because the robot sits next to a microphone. The Teensy only sends STEP / DIR / EN.
 - **MP1584 buck.** Steps 12 V down to 5 V efficiently. A linear regulator would turn the difference into heat.
-- **Teensy 4.1.** Fast, with plenty of pins and native USB MIDI for the music software.
+- **Teensy 4.1.** Fast, with plenty of pins and native USB, which carries the serial link to the web app.
 - **4 layers.** The inner layers are planes: In1 = GNDPWR, In2 = +12 V. They give wide, low-resistance paths for the solenoid and motor current and keep motor noise away from the logic.
 - **Double-sided placement on PLAyeRs.** It keeps the long, narrow board compact. C0nTrollER has every part on the top side.
 
@@ -74,8 +78,6 @@ I²C uses `Wire`: SDA = pin 18, SCL = pin 19. The TMC2209 UART is not used; moto
 
 ![PLAyeRs](PLAyeRs_Board/PLAyeRs.png)
 
-<!-- TODO: photo of the assembled board, ideally on the carriage with solenoids wired -->
-
 [Schematic PDF](PLAyeRs_Board/PLAyeRs.pdf) · [3D model](PLAyeRs_Board/PLAyeRs.step) · [Gerbers](PLAyeRs_Board/output/output.zip)
 
 ### One solenoid channel
@@ -94,11 +96,11 @@ PCA9685 PWM ─ 100 Ω ─┬─ Gate ┐
 - With no solenoid connected, the drain floats at about 9.8 V; this is normal. With a solenoid connected, the drain idles at about 12 V.
 
 ### Solenoid
-JF-1039(B): 12 V, about 0.4 A, 10 mm stroke, 25 N at full closure. The force is much lower when the plunger is far from closed. Don't keep a solenoid energized for more than about 2 s.
+JF-1039(B): 12 V, about 0.4 A, 10 mm stroke, 25 N at full closure. The force is much lower when the plunger is far from closed. The coil heats up when energized for long, so the firmware releases every solenoid after at most 2 s.
 
 
 ### Power budget
-With all 13 channels on at once, one board draws 13 × 0.4 A ≈ 5.2 A, so both boards together draw about 10 A. A 5 A supply cannot sustain that. Firmware must therefore limit how many fingers fire at the same time: a few at once, with short pulses. In normal playing, strikes last 30–150 ms.
+With all 13 channels on at once, one board draws 13 × 0.4 A ≈ 5.2 A, so both boards together draw about 10 A. A 5 A supply cannot sustain that. The firmware therefore caps the solenoid current at 4 A (ten fingers at full strike, more while holding at 35 % duty) and skips any strike that would go over; the web app plans within the same budget.
 
 ## Manufacturing
 

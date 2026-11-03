@@ -45,7 +45,7 @@ type RobotEvent = { time: number; strike?: Strike; move?: Move };
 const LOOKAHEAD = 0.25; // s of song scheduled ahead at fixed tempo
 const ROBOT_LOOKAHEAD = 0.3; // serial commands go out a little earlier still
 const LEAD_IN = 0.05;
-const TOO_LATE = 0.2; // drop events we'd play more than this late
+const TOO_LATE = 0.2; // drop events that would play more than this late
 
 function salamanderUrls() {
   const urls: Record<string, string> = { A0: "A0.mp3", C8: "C8.mp3" };
@@ -59,7 +59,7 @@ const db = (g: number) => (g <= 0.001 ? -Infinity : 20 * Math.log10(g));
 const raw = () => Tone.getContext().rawContext as unknown as AudioContext;
 const latency = () => (raw().outputLatency || 0) + (raw().baseLatency || 0);
 
-/** Piano, recordings and the robot on one clock, with our own lookahead scheduler so pause/seek are instant. */
+/** Piano, recordings and the robot on one clock, with a lookahead scheduler of its own so pause/seek are instant. */
 export class Player {
   private sampler: Tone.Sampler | null = null;
   private synth: Tone.PolySynth | null = null;
@@ -79,7 +79,7 @@ export class Player {
   private click: Tone.Synth | null = null;
   private gate = Infinity; // nothing at or after this song time is scheduled
   private gain = 1; // piano loudness, following the voice
-  private held: number | null = null; // song time we're stopped at, waiting for the singer
+  private held: number | null = null; // song time it stopped at, waiting for the singer
   ready = false;
 
   async init() {
@@ -176,15 +176,13 @@ export class Player {
         Math.max(0, ...CARRIAGES.map((c) => {
           const cur = link.pos[c];
           const target = Math.round(posAt(c, t));
-          return cur === target ? 0 : moveTime(cur === undefined ? MAX_POS : Math.abs(target - cur));
+          return moveTime(cur === undefined ? MAX_POS : Math.abs(target - cur));
         }));
       // Coming in with the singer: by the time the carriages are in place the singer is further on.
       if (o.align) from = o.align.time + ctxNow + Math.max(LEAD_IN, prepFor(o.align.time) + 0.1) + latency() - o.align.at;
       link.zero();
-      for (const c of CARRIAGES) {
-        const target = Math.round(posAt(c, from));
-        if (link.pos[c] !== target) link.move(c, target, performance.now());
-      }
+      // Always sent: a carriage stopped halfway through a move is not where the site last sent it.
+      for (const c of CARRIAGES) link.move(c, Math.round(posAt(c, from)), performance.now());
       lead = Math.max(lead, prepFor(from) + 0.1);
       this.robotEvents = [
         ...this.robot.strikes.map((s) => ({ time: s.time, strike: s })),

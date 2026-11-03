@@ -18,6 +18,7 @@ struct Hardware {
   virtual void setPosition(int c, float mm) = 0;
   virtual bool endstop(int c) = 0;
   virtual bool board(int c) = 0; // the carriage's PCA9685 answers on I2C
+  virtual void motorsOff() = 0; // drivers off, so the carriages can be pushed by hand; the next move turns them on
   virtual void print(const char* line) = 0;
   virtual ~Hardware() {}
 };
@@ -48,13 +49,13 @@ class Core {
     uint16_t dur;
     int16_t pos;
   };
-  enum Phase : uint8_t { OFF, STRIKING, HOLDING };
+  enum Phase : uint8_t { OFF, STRIKING, PRESSING, HOLDING };
   struct Channel {
     Phase phase = OFF;
-    uint32_t holdAt = 0;
+    uint32_t pressAt = 0; // end of the strike: fully on from here
+    uint32_t holdAt = 0; // hold duty from here
     uint32_t releaseAt = 0;
     float amps = 0;
-    uint16_t duty = 0; // of the strike
   };
   enum Homing : uint8_t { IDLE, SEEKING, BACKING, DONE };
 
@@ -88,7 +89,8 @@ class Core {
   void schedule(const Event& e);
   void run(const Event& e);
   void move(int c, int pos);
-  void strike(int c, int channel, uint32_t dur, uint16_t pwm);
+  /** `flat`: one pulse at `pwm` for `dur`, with no black-key scaling and no hold (TEST). */
+  void strike(int c, int channel, uint32_t dur, uint16_t pwm, bool flat = false);
   void release(int c, int channel);
   float amps();
   void startHoming();

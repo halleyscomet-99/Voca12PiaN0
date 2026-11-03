@@ -77,7 +77,7 @@ constexpr uint8_t PIN_SCK    = 13;  // clock (shared)
 // STEPPER CONFIGURATION
 // ============================================================
 
-// Adjust this value to match your hardware (see calibration note above)
+// Depends on the belt, pulley and microstepping (see the calibration note above)
 constexpr int STEPS_PER_SEMITONE = 1096;
 
 constexpr float MAX_SPEED  = 20000.0f;  // steps/sec

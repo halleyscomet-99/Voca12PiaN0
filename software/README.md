@@ -1,8 +1,12 @@
 # Software
 
-The Vocal2Piano app lives in [`site/`](../site). It runs in the browser, so the microphone, the piano and the USB link to the robot need nothing installed. This folder holds the offline tools: the scripts that turn published datasets into the statistics the app uses, and transcribers that turn local scores and recordings into demos.
+The Vocal2Piano app lives in [`site/`](../site). It runs in the browser, so the microphone, the piano and the USB link to the robot need nothing installed. This folder holds the offline tools:
 
-| Feature | Where |
+- scripts that turn published datasets into the statistics the app uses;
+- transcribers that turn local scores and recordings into songs for the app;
+- `play_fixed.py`, a player for a robot whose hands are moved by hand.
+
+| Feature (in the app) | Where |
 |---|---|
 | Song import (MIDI, MusicXML), choosing the sung part | `site/src/engine/score.ts`, `midi.ts`, `musicxml.ts` |
 | Hum a tune → chords → piano part | `site/src/humSession.ts`, `engine/harmonize.ts`, `arranger.ts` |
@@ -11,7 +15,7 @@ The Vocal2Piano app lives in [`site/`](../site). It runs in the browser, so the 
 | Changing one part (speed, piano style, cuts) or one note (leave out, longer, shorter) | `site/src/engine/parts.ts`, `components/PartBar.tsx` |
 | Pitch and timing check of a recording, or of singing with Listen on | `site/src/engine/pitchCheck.ts` |
 | Planning what the robot can play | `site/src/engine/planner.ts` |
-| Streaming to the robot | `site/src/robotLink.ts`, protocol in [`firmware/PROTOCOL.md`](../firmware/PROTOCOL.md) |
+| Streaming to the robot: moves and strikes, on time | `site/src/audio.ts`, `site/src/robotLink.ts`, protocol in [`firmware/PROTOCOL.md`](../firmware/PROTOCOL.md) |
 
 ## Where the musical choices come from
 
@@ -49,12 +53,26 @@ python3 billboard_stats.py McGill-Billboard > ../site/src/engine/billboardStats.
 curl -L -o pop.zip https://github.com/music-x-lab/POP909-Dataset/raw/master/POP909.zip && unzip pop.zip
 python3 pop909_stats.py POP909 ../site/src/engine/billboardStats.ts > ../site/src/engine/melodyStats.ts
 
-# A score in numbered musical notation → a local demo (no packages needed)
+# A score in numbered musical notation → a local song (no packages needed)
 python3 numbered_to_midi.py input/song.txt
 
-# A piano recording → a local demo (Basic Pitch needs Python 3.8–3.11)
+# A piano recording → a local song (Basic Pitch needs Python 3.8–3.11)
 python3.11 -m venv .venv && .venv/bin/pip install basic-pitch
 .venv/bin/python audio_to_midi.py input/song.mp3 "Song name" --bpm 123
 ```
 
 Scores and recordings go in `input/` and transcriptions in `site/local/`. Both are git-ignored, because transcriptions of other people's songs are for private practice, not for publishing.
+
+## Playing with the hands moved by hand
+
+In normal use the app plays the robot on its own, motors included. `play_fixed.py` covers the case where the motors are not used: it turns the motor drivers off (`FREE`), prints where each hand goes, waits for Enter, and plays that section with the solenoids alone. It needs no homing, no end stops and no packages.
+
+```bash
+python3 play_fixed.py song.performance.json        # the app's plan (Robot → Save performance file…), one section per move
+python3 play_fixed.py ../site/local/song.mid        # a MIDI file, cut into as few hand places as possible
+python3 play_fixed.py song.mid --bars 1-8 --speed 0.9 --tracks Piano
+python3 play_fixed.py song.mid --exact              # every note at its written pitch, with more hand places
+python3 play_fixed.py song.mid --dry                # the hand places only, no robot
+```
+
+At each prompt, Enter plays the section, `test b w1` strikes one finger to check a hand's place, `!POS` sends a raw command, and `q` quits. Ctrl+C stops everything. The hands keep the same 5 free white keys between them as in the app and the firmware.

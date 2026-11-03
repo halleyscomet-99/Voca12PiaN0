@@ -86,6 +86,9 @@ struct Teensy : Hardware {
   }
   bool endstop(int c) override { return pressed[c]; }
   bool board(int c) override { return present[c]; }
+  void motorsOff() override {
+    for (int c = 0; c < 2; c++) digitalWriteFast(PIN_EN[c], HIGH);
+  }
   void print(const char* line) override {
     if (Serial.dtr()) Serial.println(line);
   }

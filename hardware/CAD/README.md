@@ -1,8 +1,8 @@
 # CAD
 
+![Render of the assembled robot in its enclosure](media/PLAYeRob0T.jpg)
 
-<!-- TODO: hero image — photo of the real robot on a keyboard, or a clean render of the full assembly -->
-![PLAYeRob0T](media/TODO_hero.png)
+Fusion 360 models of the robot: two carriages that ride along the keyboard on belts, each with 13 solenoid fingers, in an enclosure that sits on the keyboard. The full assembly is `PLAYeRob0T(assembled).step`, the enclosure `C0taINerr.step`, and the single parts are in `parts/`.
 
 ## Overview
 
@@ -17,8 +17,7 @@
 
 ## Demo
 
-<!-- GitHub does not play relative-path .mp4 files in a README. Drag each video into the README editor on github.com
-     (it uploads them and returns a user-attachments link), or convert them to GIFs and embed those. -->
+Renders of the assembly. GitHub does not play videos stored in the repository inside a README, so each link opens the file.
 
 | Full robot | Assembly sequence |
 |---|---|

@@ -35,7 +35,7 @@ ACCURACY NOTES
   Chord mode uses CQT (Constant-Q Transform) which aligns frequency bins
   exactly with semitone steps. This gives cleaner peak separation than FFT.
   Multi-peak detection with prominence filtering removes octave duplicates.
-  Adaptive noise gate calibrates to your room automatically.
+  Adaptive noise gate calibrates to the room automatically.
 """
 
 import threading

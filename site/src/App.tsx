@@ -16,6 +16,8 @@ import { type Mic, openMic, toAudioBuffer } from "./mic";
 import { type HumView, HumSession } from "./humSession";
 import { RobotLink } from "./robotLink";
 import { applyScheme, loadScheme } from "./themes";
+import { CameraWindow } from "./components/CameraWindow";
+import { ManualWindow } from "./components/ManualWindow";
 import { ChordsWindow } from "./components/ChordsWindow";
 import { type AppEntry, DesktopIcons, Taskbar, Window, type WinState, useWindows } from "./components/Desktop";
 import type { IconName } from "./components/Icons";
@@ -38,7 +40,7 @@ interface Ear {
   waiting: "entrance" | "stopped" | null;
 }
 type Monitor = "robot" | "source";
-type WinId = "welcome" | "songs" | "chords" | "voice" | "player" | "robot" | "report" | "settings" | "msg";
+type WinId = "welcome" | "songs" | "chords" | "voice" | "player" | "camera" | "manual" | "robot" | "report" | "settings" | "msg";
 
 /** The take, placed on the song clock: `start` is in song seconds at the tempo it was recorded at. */
 interface Take {
@@ -52,10 +54,12 @@ const APPS: (AppEntry & { id: WinId })[] = [
   { id: "songs", label: "Songs", icon: "songs" },
   { id: "voice", label: "My Voice", icon: "mic" },
   { id: "player", label: "Rehearsal", icon: "player" },
+  { id: "camera", label: "Camera", icon: "camera" },
   { id: "chords", label: "Chords", icon: "chords" },
   { id: "report", label: "How I Sang", icon: "report" },
   { id: "robot", label: "Robot", icon: "robot" },
   { id: "settings", label: "Settings", icon: "settings" },
+  { id: "manual", label: "Manual", icon: "manual" },
   { id: "welcome", label: "Help", icon: "help" },
 ];
 const TITLE: Record<WinId, [string, IconName]> = {
@@ -64,6 +68,8 @@ const TITLE: Record<WinId, [string, IconName]> = {
   chords: ["Chords", "chords"],
   voice: ["My Voice", "mic"],
   player: ["Rehearsal", "player"],
+  camera: ["Camera", "camera"],
+  manual: ["Manual", "manual"],
   robot: ["Robot", "robot"],
   report: ["How I Sang", "report"],
   settings: ["Settings", "settings"],
@@ -90,12 +96,14 @@ function initialWindows(): Record<WinId, WinState> {
   const w = (x: number, y: number, width: number, open = false, z = 1, h?: number): WinState => ({ open, min: false, max: false, z, x, y, w: width, h });
   return {
     player: w(wide ? 500 : side, 8, wide ? W - 508 : Math.min(W - side - 8, 960), true, 1, H - 16),
+    camera: w(wide ? 500 : side, 8, wide ? W - 508 : Math.min(W - side - 8, 960), false, 1, H - 16),
     songs: w(side, 8, 392, true, 3),
     voice: w(side, 400, 392, true, 2),
     chords: w(side + 30, 60, 380),
     robot: w(Math.max(side, W - 480), 50, 450),
     report: w(Math.max(side, W / 2 - 220), 70, 440),
     settings: w(side + 60, 110, 330),
+    manual: w(Math.max(side, W / 2 - 360), 40, Math.min(720, W - side - 8), false, 1, Math.min(560, H - 60)),
     welcome: w(Math.max(0, W / 2 - 190), Math.max(0, H / 2 - 170), 380, FIRST_VISIT, 5),
     msg: w(Math.max(0, W / 2 - 170), Math.max(0, H / 2 - 80), 340),
   };
@@ -140,7 +148,7 @@ export default function App() {
   const [kind, setKind] = useState<SourceKind>("demo");
   const [score, setScore] = useState<Score | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [scoreOpts, setScoreOpts] = useState<ScoreSongOptions>({ topLine: true, guide: false });
+  const [scoreOpts, setScoreOpts] = useState<ScoreSongOptions>({ topLine: false, guide: false });
   const [prog, setProg] = useState(PROGRESSIONS[0].id);
   const [demoChart, setDemoChart] = useState<ChordChart>(() => progressionChart(PROGRESSIONS[0].id));
   const [hum, setHum] = useState<{ base: Harmonized; chart: ChordChart; notes: Note[]; bpm: number } | null>(null);
@@ -290,9 +298,11 @@ export default function App() {
   }, [takeTrack, melody, liveRev, timeline, opts.transpose]);
 
   const linkUp = link.current.status === "connected";
+  // The robot only takes moves once it knows where its hands are.
+  const robotReady = linkUp && link.current.homed;
   const robotOut = useMemo<RobotOut | undefined>(
-    () => (robotLive && linkUp ? { link: link.current, strikes: plan.strikes, moves: plan.moves, posAt: (c, t) => carriagePosAt(plan, c, t) } : undefined),
-    [robotLive, linkUp, plan],
+    () => (robotLive && robotReady ? { link: link.current, strikes: plan.strikes, moves: plan.moves, posAt: (c, t) => carriagePosAt(plan, c, t) } : undefined),
+    [robotLive, robotReady, plan],
   );
 
   // ---------- Transport ----------
@@ -347,7 +357,7 @@ export default function App() {
     setPlaying(true);
   }, [startAt, total, timeline]);
 
-  // Re-schedule whenever what we hear changes mid-play, staying at the same place in the
+  // Re-schedule whenever what is heard changes mid-play, staying at the same place in the
   // song when the speed or a part's length changed.
   const prevTimeline = useRef(timeline);
   useEffect(() => {
@@ -436,7 +446,7 @@ export default function App() {
     let mic: Mic | null = null;
     let stop = () => {};
     let gone = false;
-    // Echo cancellation keeps the speakers out of what we hear.
+    // Echo cancellation keeps the speakers out of what the microphone hears.
     openMic(true)
       .then((m) => {
         if (gone) return m.close();
@@ -510,6 +520,8 @@ export default function App() {
       if (name) s.name = name;
       setScore(s);
       setRoles(guessRoles(s));
+      // Without a melody track the robot plays every note; taking the top line as the tune is opt-in.
+      setScoreOpts((o) => ({ ...o, topLine: false }));
       resetTo("file");
     } catch (e) {
       say(e instanceof Error ? e.message : String(e));
@@ -520,8 +532,6 @@ export default function App() {
     try {
       const r = await fetch(`local/${d.file}`);
       if (!r.ok) throw new Error(`Couldn't open local/${d.file}`);
-      // A piano accompaniment: the robot plays all of it, and the singer brings the tune.
-      setScoreOpts((o) => ({ ...o, topLine: false }));
       await loadScore(new File([await r.blob()], d.file), d.name);
     } catch (e) {
       say(e instanceof Error ? e.message : String(e));
@@ -620,23 +630,15 @@ export default function App() {
   const openApp = (id: string) => {
     if (id === "report" && !report) return say("Sing a song with a tune first: turn on 👂 Listen or ● Rec in Rehearsal.");
     if (id === "chords" && !usesChart) return say("Chords can be edited for hummed tunes and demos. Pick one in Songs.");
+    if (id === "camera") {
+      // Same place and size as Rehearsal, so the two swap cleanly while filming.
+      const { x, y, w, h, max } = wm.wins.player;
+      wm.patch("camera", { x, y, w, h, max });
+    }
     wm.focus(id as WinId);
   };
 
   const playable = plan.stats.notes ? Math.round((plan.stats.played / plan.stats.notes) * 100) : 100;
-  const melodyName = kind === "file" && score ? score.tracks.find((_, i) => roles[i] === "melody")?.name : undefined;
-  const caption =
-    kind === "file" && score
-      ? melodyName
-        ? `white outlines = sung part (${melodyName})`
-        : song.melody
-          ? "white outlines = sung part (top line)"
-          : "robot plays everything"
-      : kind === "hum" && hum
-        ? `${hum.base.key} · hummed tune`
-        : kind === "demo"
-          ? PROGRESSIONS.find((p) => p.id === prog)!.chords.join(" – ")
-          : "demo (nothing loaded yet)";
   const status = ear.waiting
     ? ear.waiting === "entrance"
       ? "👂 Waiting for the voice to come in. Sing, or press ▶ Go on."
@@ -780,9 +782,6 @@ export default function App() {
               </select>
             </div>
             <div className="stage-box">
-              <span className="stage-caption">
-                <b>{song.name}</b> · {caption}
-              </span>
               <Stage plan={plan} getTime={getTime} melody={melody} />
             </div>
             <PartBar
@@ -843,7 +842,7 @@ export default function App() {
             <div className="statusbar">
               <span>{status}</span>
               <span className="fit">{playable}% playable</span>
-              <span className="fit">{linkUp ? (robotLive ? "🤖 Robot: live" : "🤖 Robot: connected") : "Robot: offline"}</span>
+              <span className="fit">{linkUp ? (robotLive && robotReady ? "🤖 Robot: live" : robotReady ? "🤖 Robot: ready" : "🤖 Robot: not homed") : "Robot: offline"}</span>
             </div>
           </div>,
           { resize: true, max: true, className: "player" },
@@ -895,6 +894,8 @@ export default function App() {
             { title: `Chords – ${chart.name}` },
           )}
 
+        {win("camera", <CameraWindow onError={say} />, { resize: true, max: true })}
+
         {win("robot", <RobotWindow plan={plan} link={link.current} live={robotLive} onLive={setRobotLive} onExport={() => exportPlan(plan, song.name)} onSeek={seek} />)}
 
         {report && win("report", <ReportWindow report={report} onSeek={seek} />)}
@@ -917,6 +918,8 @@ export default function App() {
             }}
           />,
         )}
+
+        {win("manual", <ManualWindow />, { resize: true, max: true })}
 
         {win("welcome", <WelcomeWindow onOpen={(id) => openApp(id)} onClose={() => wm.close("welcome")} />, { min: false })}
 

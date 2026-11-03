@@ -29,7 +29,7 @@ export class MicBlockedError extends Error {
 
 /**
  * @param echoCancellation on when the piano is playing through speakers at the same time,
- *   so it doesn't leak into what we hear
+ *   so it doesn't leak into what the microphone hears
  */
 export async function openMic(echoCancellation: boolean): Promise<Mic> {
   let stream: MediaStream;

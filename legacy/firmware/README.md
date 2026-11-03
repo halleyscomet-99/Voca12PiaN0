@@ -1,6 +1,6 @@
 # Firmware
 
-Teensy 4.1 firmware. Receives serial commands from `MIDI2Piano.py` and controls two solenoid driver boards and two stepper motors.
+The first Teensy 4.1 firmware, replaced by [`firmware/`](../../firmware). It received serial commands from `MIDI2Piano.py` and controlled two solenoid driver boards and two stepper motors.
 
 Built with [PlatformIO](https://platformio.org/).
 
@@ -13,7 +13,7 @@ pio run --target upload
 pio device monitor --baud 115200
 ```
 
-If VS Code shows red squiggles on the includes, run `pio init --ide vscode` once to generate the IntelliSense config. This doesn't affect compilation.
+Red squiggles on the includes in VS Code come from a missing IntelliSense config, which `pio init --ide vscode` generates. They do not affect compilation.
 
 ## Pin assignments
 
@@ -35,7 +35,7 @@ Both driver boards share SCK and CS. SER_A and SER_B are clocked together on eve
 
 ## Serial protocol
 
-115200 baud, ASCII, newline-terminated. Used by `MIDI2Piano.py` — you don't normally need to type these manually.
+115200 baud, ASCII, newline-terminated. `MIDI2Piano.py` sends these; typing them by hand is only needed for testing.
 
 ```
 MOVE R <semitone_offset> <rpm>   move right board to offset from home
@@ -51,17 +51,17 @@ Solenoid mask is 15-bit: bit 0 = SOL 1, bit 14 = SOL 15. Example: `0x0015` = SOL
 
 ## Calibrating steps per semitone
 
-`STEPS_PER_SEMITONE` in `src/main.cpp` needs to match your physical setup.
+`STEPS_PER_SEMITONE` in `src/main.cpp` depends on the belt, pulley and microstepping.
 
-Send `HOME` then `MOVE R 12 100`, and measure how far the board actually moved. It should travel 12 piano semitone spacings (roughly 164mm for a standard piano). Calculate:
+After `HOME`, `MOVE R 12 100` should move the board 12 semitone spacings (roughly 164 mm on a standard piano). From the distance it actually moved:
 
 ```
 new value = 1096 × (164 / actual_mm)
 ```
 
-Update the constant and reflash.
+The constant is then updated and the firmware flashed again.
 
-The default of 1096 assumes a NEMA17 with GT2 belt, 20-tooth pulley, 1/16 microstepping. Adjust if your setup differs.
+The default of 1096 is for a NEMA17 with a GT2 belt, a 20-tooth pulley and 1/16 microstepping.
 
 ## Dependencies
 

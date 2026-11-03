@@ -75,7 +75,7 @@ export class Listener {
   private melody: Note[] = [];
   private piano: Note[] = [];
   private beat = 0.5;
-  private next = 0; // index of the line we're waiting to hear start
+  private next = 0; // index of the line whose start it is waiting to hear
   private gate = Infinity;
   private lastVoice = -Infinity; // song time of the last voiced frame
   private levels: number[] = [];

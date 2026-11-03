@@ -20,7 +20,7 @@ export async function readMidiScore(file: File): Promise<Score> {
   };
 }
 
-/** Performance file the firmware will consume (format v0, may change). */
+/** The whole plan as a performance file (format version 0), for playing without the site (software/play_fixed.py). */
 export function exportPlan(plan: Plan, songName: string) {
   const ms = (s: number) => Math.round(s * 1000);
   const data = {

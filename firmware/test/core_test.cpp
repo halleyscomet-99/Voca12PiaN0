@@ -37,6 +37,8 @@ struct Sim : Hardware {
   bool boards[2] = {true, true};
   bool endstop(int c) override { return c == BASS ? physical[c] <= 0.0f : physical[c] >= 45 * 23.5f; }
   bool board(int c) override { return boards[c]; }
+  bool free = false;
+  void motorsOff() override { free = true; }
   void print(const char* line) override { out.push_back(line); }
 
   void step(Core& core, uint32_t n) {
@@ -107,6 +109,36 @@ void testHoming() {
   CHECK(fabsf(sim.physical[BASS] - sim.position(BASS)) < 1.5f);
 }
 
+void testSetHome() {
+  puts("SETHOME takes the carriages' places as home, without moving or end stops");
+  Sim sim;
+  Core core(sim);
+  sim.physical[BASS] = sim.goal[BASS] = 0;
+  sim.physical[TREBLE] = sim.goal[TREBLE] = 45 * 23.5f;
+  send(core, "SETHOME");
+  CHECK(sim.said("HOMED"));
+  CHECK(core.homed());
+  CHECK(!sim.moving(BASS) && !sim.moving(TREBLE));
+  send(core, "GO B 10");
+  sim.step(core, 5000);
+  CHECK(fabsf(sim.physical[BASS] - 10 * 23.5f) < 0.01f);
+}
+
+void testFree() {
+  puts("FREE turns the motors off and forgets the homing; strikes still play");
+  Sim sim;
+  Core core(sim);
+  send(core, "SETHOME");
+  send(core, "FREE");
+  CHECK(sim.free);
+  CHECK(!core.homed());
+  CHECK(sim.out.back() == "OK");
+  send(core, "ZERO");
+  send(core, "S T 0 0 100 4095");
+  sim.step(core, 1);
+  CHECK(sim.duty[TREBLE][0] == 4095);
+}
+
 void testJogToSwitch() {
   puts("Before homing, JOG towards an end stop stops at the switch");
   Sim sim;
@@ -122,24 +154,28 @@ void testJogToSwitch() {
 }
 
 void testStrikes() {
-  puts("Strikes play in time order: strike duty, then hold duty, then release");
+  puts("Strikes play in time order: strike duty, fully on, then hold duty, then release");
   Sim sim;
   Core core(sim);
   send(core, "CFG 400 3000 23.5 50 35");
   send(core, "ZERO");
-  send(core, "S T 4 300 200 3000"); // out of order
-  send(core, "S T 2 100 120 4095");
+  send(core, "S T 4 700 100 3000"); // out of order
+  send(core, "S T 2 100 500 3000");
   sim.step(core, 99);
   CHECK(sim.duty[TREBLE][2] == 0);
   sim.step(core, 1);
-  CHECK(sim.duty[TREBLE][2] == 4095);
+  CHECK(sim.duty[TREBLE][2] == 3000);
   sim.step(core, 50);
-  CHECK(sim.duty[TREBLE][2] == 4095 * 35 / 100);
-  sim.step(core, 70);
+  CHECK(sim.duty[TREBLE][2] == 4095); // fully on: no PWM hum
+  sim.step(core, 250);
+  CHECK(sim.duty[TREBLE][2] == 4095 * 35 / 100); // PRESS_MS after the strike
+  sim.step(core, 200);
   CHECK(sim.duty[TREBLE][2] == 0);
   CHECK(sim.duty[TREBLE][4] == 0);
-  sim.step(core, 80);
+  sim.step(core, 100);
   CHECK(sim.duty[TREBLE][4] == 3000);
+  sim.step(core, 100);
+  CHECK(sim.duty[TREBLE][4] == 0); // a short note never drops to the hold duty
   CHECK(core.queued() == 0);
 }
 
@@ -224,39 +260,39 @@ void testMoves() {
   sim.out.clear();
   send(core, "ZERO");
   moveIn(core, 'B', 10, 100);
-  moveIn(core, 'T', 20, 100);
+  moveIn(core, 'T', 25, 100);
   sim.step(core, 8000);
   CHECK(at(sim, BASS, 10));
-  CHECK(at(sim, TREBLE, 20));
+  CHECK(at(sim, TREBLE, 25));
   CHECK(sim.out.empty());
-  moveIn(core, 'B', 14, 10); // 6 keys from treble
-  moveIn(core, 'T', 16, 20); // 6 keys from bass
+  moveIn(core, 'B', 14, 10); // 11 keys from treble: 4 free between the hands
+  moveIn(core, 'T', 21, 20); // 11 keys from bass
   moveIn(core, 'B', 50, 30); // off the keyboard
   moveIn(core, 'T', 46, 40); // past the treble end stop
   sim.step(core, 300);
   CHECK(sim.said("ERR bass 14 too close"));
-  CHECK(sim.said("ERR treble 16 too close"));
+  CHECK(sim.said("ERR treble 21 too close"));
   CHECK(sim.said("ERR position 50 out of range"));
   CHECK(sim.said("ERR position 46 out of range"));
   CHECK(at(sim, BASS, 10));
   // Both moving the same way, the treble first: fine.
-  moveIn(core, 'T', 30, 10);
+  moveIn(core, 'T', 35, 10);
   moveIn(core, 'B', 22, 110);
   sim.step(core, 5000);
   CHECK(at(sim, BASS, 22));
-  CHECK(at(sim, TREBLE, 30));
+  CHECK(at(sim, TREBLE, 35));
   CHECK(core.homed());
   // Both moving left at the same moment, the treble listed first: the treble's target is fine
   // once the bass has gone too.
   sim.out.clear();
-  moveIn(core, 'T', 18, 5);
+  moveIn(core, 'T', 23, 5);
   moveIn(core, 'B', 10, 5);
   sim.step(core, 5000);
   CHECK(sim.out.empty());
   CHECK(at(sim, BASS, 10));
-  CHECK(at(sim, TREBLE, 18));
+  CHECK(at(sim, TREBLE, 23));
   // GO moves now, with the same checks.
-  send(core, "GO T 30");
+  send(core, "GO T 35");
   sim.step(core, 5000);
   send(core, "GO B 21");
   sim.step(core, 5000);
@@ -270,29 +306,74 @@ void testMoves() {
   sim.step(core, 8000);
   // A bass faster than the treble ahead of it: the guard stops both before they touch.
   sim.out.clear();
-  moveIn(core, 'T', 40, 1);
+  moveIn(core, 'T', 45, 1);
   moveIn(core, 'B', 33, 1);
   sim.step(core, 1);
   sim.speed[TREBLE] = 10; // the treble is held back (a stall, a slipping belt)
   sim.step(core, 5000);
   CHECK(sim.said("ERR carriages too close"));
-  CHECK(sim.position(TREBLE) - sim.position(BASS) > 6.5f * 23.5f);
+  CHECK(sim.position(TREBLE) - sim.position(BASS) > 11.5f * 23.5f);
 }
 
 void testBlackKeys() {
-  puts("Black-key fingers strike at 40 %, and never hold harder than they struck");
+  puts("Black-key fingers strike at 40 %, then go fully on and hold like white keys");
   Sim sim;
   Core core(sim);
   send(core, "CFG 400 3000 23.5 50 35");
   send(core, "ZERO");
-  send(core, "S T 8 0 300 4095");
-  send(core, "S B 9 0 300 2000");
+  send(core, "S T 8 0 500 4095");
+  send(core, "S B 9 0 500 2000");
   sim.step(core, 1);
   CHECK(sim.duty[TREBLE][8] == uint16_t(4095 * 0.4f));
   CHECK(sim.duty[BASS][9] == uint16_t(2000 * 0.4f));
   sim.step(core, 60);
+  CHECK(sim.duty[TREBLE][8] == 4095);
+  CHECK(sim.duty[BASS][9] == 4095);
+  sim.step(core, 250);
   CHECK(sim.duty[TREBLE][8] == 4095 * 35 / 100);
-  CHECK(sim.duty[BASS][9] == uint16_t(2000 * 0.4f)); // 800 is below the 35 % hold
+  CHECK(sim.duty[BASS][9] == 4095 * 35 / 100);
+}
+
+void testFingerNames() {
+  puts("TEST takes finger names: W1-W7, B1-B6 left to right (bass board reversed), or Cn");
+  Sim sim;
+  Core core(sim);
+  send(core, "TEST T W1");
+  send(core, "TEST B W1");
+  send(core, "TEST T B1");
+  send(core, "TEST B b6");
+  send(core, "TEST B C3");
+  sim.step(core, 1);
+  CHECK(sim.duty[TREBLE][0] == 4095);
+  CHECK(sim.duty[BASS][6] == 4095);
+  CHECK(sim.duty[TREBLE][7] == uint16_t(4095 * 0.4f));
+  CHECK(sim.duty[BASS][7] == uint16_t(4095 * 0.4f));
+  CHECK(sim.duty[BASS][3] == 4095);
+  CHECK(sim.said("OK W1 ch 0"));
+  CHECK(sim.said("OK W1 ch 6"));
+  send(core, "TEST T W8");
+  send(core, "TEST T B7");
+  send(core, "TEST T 3");
+  CHECK(sim.out.size() == 8);
+  for (size_t i = 5; i < sim.out.size(); i++) CHECK(sim.out[i].rfind("ERR bad TEST", 0) == 0);
+
+  puts("TEST with a length (and power) is one flat pulse: black keys unscaled, no hold");
+  sim.step(core, 200);
+  send(core, "TEST T B2 30");
+  send(core, "TEST T W3 100 60");
+  CHECK(sim.said("OK B2 ch 8 30 ms 100 %"));
+  sim.step(core, 1);
+  CHECK(sim.duty[TREBLE][8] == 4095);
+  CHECK(sim.duty[TREBLE][2] == 4095 * 60 / 100);
+  sim.step(core, 60); // past the CFG strike time: still no drop to the hold duty
+  CHECK(sim.duty[TREBLE][2] == 4095 * 60 / 100);
+  CHECK(sim.duty[TREBLE][8] == 0);
+  sim.step(core, 40);
+  CHECK(sim.duty[TREBLE][2] == 0);
+  send(core, "TEST T W1 600");
+  send(core, "TEST T W1 50 0");
+  CHECK(sim.out.back().rfind("ERR bad TEST", 0) == 0);
+  CHECK(sim.out[sim.out.size() - 2].rfind("ERR bad TEST", 0) == 0);
 }
 
 void testSpeedLimit() {
@@ -352,6 +433,8 @@ void testEndstopWhilePlaying() {
 int main() {
   testHello();
   testHoming();
+  testSetHome();
+  testFree();
   testJogToSwitch();
   testStrikes();
   testMaxHold();
@@ -360,6 +443,7 @@ int main() {
   testLate();
   testMoves();
   testBlackKeys();
+  testFingerNames();
   testSpeedLimit();
   testMissingBoard();
   testStop();

@@ -1,6 +1,5 @@
 // In-browser song analysis: tempo + beat grid, bar-level chords, and key.
-// Good enough for songs with a steady beat and clear harmony (EDM, pop).
-// A Python pipeline with source separation (software/) can replace it later.
+// Works on songs with a steady beat and clear harmony (EDM, pop). Not used by the UI.
 
 import type { ChordChart } from "./arranger";
 

@@ -1,5 +1,5 @@
 // Pins, I2C addresses and calibration for the C0nTrollER + PLAyeRs boards.
-// Values marked "calibrate" depend on the mechanics; README.md explains how to measure them.
+// Values marked "calibrate" depend on the mechanics; README.md describes how they are measured.
 #pragma once
 #include <stdint.h>
 
@@ -22,11 +22,11 @@ constexpr float PWM_HZ = 1000; // as on the hardware test
 
 // Motion. Positions are in mm from "finger W1 over A0", growing towards the treble.
 // calibrate: GT2 belt (2 mm pitch) on a 20-tooth pulley = 40 mm per turn;
-// 200 full steps x 8 microsteps (TMC2209 with MS1 and MS2 low) = 1600 steps per turn.
-constexpr float STEPS_PER_MM = 1600.0f / 40.0f;
-// DIR low moves each carriage towards its own end stop (hardware test, `homedir` 0), so the
-// treble, which homes to the high end, is inverted. Flip if a carriage moves the wrong way on JOG.
-constexpr bool DIR_INVERT[2] = {false, true};
+// 200 full steps x 16 microsteps = 3200 steps per turn. Measured: 1600/40 moved half as far.
+constexpr float STEPS_PER_MM = 3200.0f / 40.0f;
+// Measured on the robot: without inversion, JOG moved the bass left and the treble right, and
+// HOME drove both towards the middle. Flip if a carriage moves the wrong way on JOG.
+constexpr bool DIR_INVERT[2] = {true, false};
 // calibrate: where W1 is (in white keys, 0 = A0) when each carriage touches its end stop.
 // Bass homes to the low end, treble to the high end.
 constexpr float HOME_KEYS[2] = {0.0f, 45.0f};
@@ -38,14 +38,16 @@ constexpr uint32_t HOME_TIMEOUT_MS = 90000;
 // An end stop pressed while the carriage is believed this far from it means lost steps.
 constexpr float SLIP_MM = 2.0f;
 
-// Upper limits on whatever CFG asks for. The hardware test ran at ~1000 steps/s; raise these
-// once JOG and GO run cleanly faster (and keep site/src/engine/robot.ts in step with them).
+// Upper limits on whatever CFG asks for, tested on the robot with long GO moves. Higher limits
+// need the same test again, and the same values in site/src/engine/robot.ts.
 constexpr float SPEED_LIMIT_MM = 100.0f;
 constexpr float ACCEL_LIMIT_MM = 1000.0f;
 
 // Keyboard limits, in white keys (52 white keys; a carriage spans 7).
 constexpr int MAX_POS = 45;
-constexpr float MIN_GAP_KEYS = 7.0f; // bass W1 at least this far left of treble W1
+// The hands keep at least 5 white keys free between them: bass W1 at least 7 + 5 = 12 white keys
+// left of treble W1. Same as HAND_GAP in site/src/engine/robot.ts.
+constexpr float MIN_GAP_KEYS = 12.0f;
 
 // Defaults until the site sends CFG (same as site/src/engine/robot.ts).
 constexpr float SPEED_MM = 100.0f;
@@ -57,6 +59,11 @@ constexpr uint8_t HOLD_PCT = 35;
 // Solenoids (JF-1039(B), 12 V, ~0.4 A each).
 constexpr int CHANNELS = 13;
 constexpr uint32_t MAX_HOLD_MS = 2000;
+// After the strike, a key stays fully on (no PWM, so silent) until this long after it was struck,
+// and only then drops to the hold duty. Below 100 % the coil hums at the PWM frequency, and the
+// PCA9685 can't go above ~1.5 kHz, so only notes longer than this hum. Same as
+// fullPress in site/src/engine/robot.ts.
+constexpr uint32_t PRESS_MS = 300;
 constexpr float SOLENOID_AMPS = 0.4f;
 constexpr float BUDGET_AMPS = 4.0f; // 5 A supply minus motors and logic
 // Channels 7–12 are the black-key fingers on both boards. They need far less force: the

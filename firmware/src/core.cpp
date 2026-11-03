@@ -25,6 +25,24 @@ bool num(const char* s, long& out) {
   return *end == 0;
 }
 
+// Finger name → PCA9685 channel, as on the hardware test: W1–W7 (white) and B1–B6 (black) from
+// left to right, with the bass board wired in reverse; Cn is channel n. -1 if not a finger.
+int finger(int c, const char* s) {
+  long k;
+  if (!s || !num(s + 1, k)) return -1;
+  switch (s[0]) {
+    case 'W': case 'w':
+      if (k < 1 || k > 7) return -1;
+      return c == BASS ? 7 - k : k - 1;
+    case 'B': case 'b':
+      if (k < 1 || k > 6) return -1;
+      return c == BASS ? 13 - k : 6 + k;
+    case 'C': case 'c':
+      return k >= 0 && k < CHANNELS ? k : -1;
+  }
+  return -1;
+}
+
 bool real(const char* s, float& out) {
   if (!s || !*s) return false;
   char* end;
@@ -71,6 +89,22 @@ void Core::command(char* line) {
       reply("LOG speed limited to %.0f mm/s and %.0f mm/s2 (config.h): long moves will run late", speed, accel);
   } else if (!strcmp(cmd, "HOME")) {
     startHoming();
+  } else if (!strcmp(cmd, "FREE")) {
+    // Motors off, for moving the carriages by hand: where they are is no longer known.
+    stop();
+    hw.motorsOff();
+    homed_ = false;
+    reply("OK");
+  } else if (!strcmp(cmd, "SETHOME")) {
+    // The carriages were put at their home ends by hand (e.g. no end stops wired): take that as
+    // home without moving.
+    stop();
+    for (int c = 0; c < 2; c++) {
+      target[c] = HOME_KEYS[c] * keyMm;
+      hw.setPosition(c, target[c]);
+    }
+    homed_ = true;
+    reply("HOMED");
   } else if (!strcmp(cmd, "ZERO")) {
     zero = hw.millis();
   } else if (!strcmp(cmd, "STOP")) {
@@ -102,9 +136,18 @@ void Core::command(char* line) {
     move(c, a);
   } else if (!strcmp(cmd, "TEST")) {
     int c = carriage(f[1]);
-    if (n != 3 || c < 0 || !num(f[2], a) || a < 0 || a >= CHANNELS) return reply("ERR bad TEST");
-    strike(c, a, 150, 4095);
-    reply("OK");
+    int k = c < 0 ? -1 : finger(c, f[2]);
+    // TEST <c> <finger>: as a played note. TEST <c> <finger> <ms> [<pct>]: one flat pulse.
+    if ((n != 3 && n != 4 && n != 5) || k < 0) return reply("ERR bad TEST (fingers W1-W7, B1-B6, or C0-C12)");
+    if (n == 3) {
+      strike(c, k, 150, 4095);
+      return reply("OK %s ch %d", f[2], k);
+    }
+    if (!num(f[3], a) || a < 1 || a > 500) return reply("ERR bad TEST (1-500 ms)");
+    b = 100;
+    if (n == 5 && (!num(f[4], b) || b < 1 || b > 100)) return reply("ERR bad TEST (1-100 %%)");
+    strike(c, k, a, b == 100 ? 4095 : uint16_t(4095 * b / 100), true);
+    reply("OK %s ch %d %ld ms %ld %%", f[2], k, a, b);
   } else {
     reply("ERR unknown command %s", cmd);
   }
@@ -138,7 +181,7 @@ void Core::tick() {
     next = 0;
   }
 
-  // Strike → hold → release, per channel.
+  // Strike → fully on → hold → release, per channel.
   uint32_t ms = hw.millis();
   for (int c = 0; c < 2; c++)
     for (int k = 0; k < CHANNELS; k++) {
@@ -146,13 +189,14 @@ void Core::tick() {
       if (x.phase == OFF) continue;
       if (int32_t(ms - x.releaseAt) >= 0) {
         release(c, k);
-      } else if (x.phase == STRIKING && int32_t(ms - x.holdAt) >= 0) {
-        // Holding takes less than striking; never more than the strike itself (light black keys).
+      } else if (x.phase != HOLDING && int32_t(ms - x.holdAt) >= 0) {
         uint16_t hold = uint16_t(4095UL * holdPct / 100);
-        if (hold > x.duty) hold = x.duty;
         x.phase = HOLDING;
         x.amps = SOLENOID_AMPS * hold / 4095.0f;
         hw.pwm(c, k, hold);
+      } else if (x.phase == STRIKING && int32_t(ms - x.pressAt) >= 0) {
+        x.phase = PRESSING;
+        hw.pwm(c, k, 4095);
       }
     }
 
@@ -268,10 +312,11 @@ float Core::amps() {
   return sum;
 }
 
-void Core::strike(int c, int k, uint32_t dur, uint16_t pwm) {
+void Core::strike(int c, int k, uint32_t dur, uint16_t pwm, bool flat) {
   Channel& x = ch[c][k];
-  if (k >= FIRST_BLACK) pwm = uint16_t(pwm * BLACK_SCALE);
-  float need = SOLENOID_AMPS * pwm / 4095.0f;
+  if (k >= FIRST_BLACK && !flat) pwm = uint16_t(pwm * BLACK_SCALE);
+  // Counted at full current from the start: the key goes fully on after the strike.
+  float need = flat ? SOLENOID_AMPS * pwm / 4095.0f : SOLENOID_AMPS;
   if (amps() - x.amps + need > BUDGET_AMPS + 0.001f) {
     overBudget++;
     return;
@@ -280,8 +325,8 @@ void Core::strike(int c, int k, uint32_t dur, uint16_t pwm) {
   if (dur > MAX_HOLD_MS) dur = MAX_HOLD_MS;
   x.phase = STRIKING;
   x.amps = need;
-  x.duty = pwm;
-  x.holdAt = ms + strikeMs;
+  x.pressAt = flat ? ms + dur : ms + strikeMs;
+  x.holdAt = flat ? ms + dur : ms + PRESS_MS;
   x.releaseAt = ms + dur;
   hw.pwm(c, k, pwm);
 }

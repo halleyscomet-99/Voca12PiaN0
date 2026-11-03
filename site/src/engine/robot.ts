@@ -1,5 +1,4 @@
-// Robot geometry and hardware limits.
-// Values marked "estimate" have not been measured on the real robot yet.
+// Robot geometry and hardware limits, shared by the planner and the robot link.
 
 export type CarriageId = "bass" | "treble";
 export const CARRIAGES: CarriageId[] = ["bass", "treble"];
@@ -10,20 +9,25 @@ export const WHITE_KEY_MM = 23.5;
 
 export const WHITE_FINGERS = 7;
 export const BLACK_FINGERS = 6;
+/** White keys always left free between the hands; firmware MIN_GAP_KEYS = WHITE_FINGERS + HAND_GAP. */
+export const HAND_GAP = 5;
+/** Least distance from bass W1 to treble W1, in white keys. */
+export const MIN_W1_GAP = WHITE_FINGERS + HAND_GAP;
 
 export const ROBOT = {
-  // Same as the firmware's SPEED_LIMIT_MM and ACCEL_LIMIT_MM (firmware/src/config.h); raise both
-  // together once the motors are tested faster.
+  // Same as the firmware's SPEED_LIMIT_MM and ACCEL_LIMIT_MM (firmware/src/config.h); the two
+  // files change together.
   carriageSpeedMm: 100, // mm/s
   carriageAccelMm: 1000, // mm/s²
   settle: 0.02, // s, settle time after a move
   minNoteLen: 0.06, // s, shortest strike before a carriage may leave
   minRelease: 0.03, // s, finger must be up this long before re-striking
   maxHold: 2.0, // s, JF-1039(B) should not stay energized longer
-  strikeTime: 0.05, // s at full duty, then drops to holdDuty
-  holdDuty: 0.35, // estimate: PWM duty that still holds the plunger down
+  strikeTime: 0.05, // s at the strike's own duty (its loudness), then fully on
+  fullPress: 0.3, // s after the strike starts, fully on (silent), then holdDuty; firmware PRESS_MS
+  holdDuty: 0.35, // PWM duty that still holds the plunger down
   solenoidAmps: 0.4,
-  solenoidBudgetAmps: 4.0, // 5 A supply minus motors + logic (estimate)
+  solenoidBudgetAmps: 4.0, // 5 A supply minus motors and logic
 };
 
 export const isBlack = (midi: number) => [1, 3, 6, 8, 10].includes(((midi % 12) + 12) % 12);

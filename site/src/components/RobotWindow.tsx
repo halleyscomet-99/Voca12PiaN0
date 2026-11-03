@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ROBOT } from "../engine/robot";
+import { ROBOT, WHITE_KEYS, noteName } from "../engine/robot";
 import type { Plan, WarningKind } from "../engine/types";
 import { RobotLink } from "../robotLink";
 import { PROBLEM_LABEL, SEVERE } from "./problems";
@@ -27,6 +27,15 @@ export function RobotWindow({ plan, link, live, onLive, onExport, onSeek }: Prop
     return c;
   }, [plan]);
   const connected = link.status === "connected";
+  const ready = connected && link.homed;
+  const at = (k: number | undefined) => (k === undefined ? "?" : noteName(WHITE_KEYS[Math.max(0, Math.min(WHITE_KEYS.length - 1, Math.round(k)))]));
+  const next = !connected
+    ? "1. Connect the robot over USB."
+    : !link.homed
+      ? "2. Home the hands: Home with end stops, or Set home here with the bass W1 over A0 and the treble W1 over D7."
+      : !live
+        ? "3. Tick Play on the real robot, then press Play in Rehearsal."
+        : "Ready: Play in Rehearsal moves the hands and plays the song.";
 
   return (
     <div className="win-body">
@@ -73,12 +82,26 @@ export function RobotWindow({ plan, link, live, onLive, onExport, onSeek }: Prop
                   <button className="btn" onClick={() => link.home()} disabled={!connected} title="Move both hands to their end stops">
                     Home
                   </button>
-                  <span className="dim">{connected ? (link.device ?? "waiting for robot…") + (link.homed ? " · homed" : "") : "not connected"}</span>
+                  <button
+                    className="btn"
+                    onClick={() => link.setHome()}
+                    disabled={!connected}
+                    title="The hands are already at the far left and far right: take that as home without moving (when the end stops aren't wired)"
+                  >
+                    Set home here
+                  </button>
+                  <button className="btn" onClick={() => link.free()} disabled={!connected} title="Turn the motors off so the hands slide by hand (the robot then needs homing again)">
+                    Release motors
+                  </button>
+                  <span className="dim">
+                    {connected ? `${link.device ?? "waiting for robot…"} · ${link.homed ? `homed · left hand ${at(link.pos.bass)}, right hand ${at(link.pos.treble)}` : "not homed"}` : "not connected"}
+                  </span>
                 </div>
-                <label className="check">
-                  <input type="checkbox" checked={live} disabled={!connected} onChange={(e) => onLive(e.target.checked)} />
+                <label className="check" title={ready ? "Play in Rehearsal moves the hands and fires the fingers" : "Connect and home the robot first"}>
+                  <input type="checkbox" checked={live && ready} disabled={!ready} onChange={(e) => onLive(e.target.checked)} />
                   <span>Play on the real robot</span>
                 </label>
+                <span className="robot-next">{next}</span>
                 <pre className="serial-log sunken" aria-label="Robot messages">
                   {link.log.slice(-8).join("\n") || " "}
                 </pre>

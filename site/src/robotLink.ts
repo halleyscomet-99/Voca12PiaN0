@@ -25,7 +25,11 @@ export class RobotLink {
   device: string | null = null; // reply to HELLO, e.g. "V2P 1"
   homed = false;
   log: string[] = [];
-  /** Last position each carriage was sent to (white-key index), for planning the lead-in. */
+  /**
+   * Where each carriage is, or was last sent (W1 in white keys), for timing the move to the
+   * start of a song. Read back from the robot with POS after homing and after every stop;
+   * missing = unknown, so the lead-in allows for the longest move.
+   */
   pos: Partial<Record<CarriageId, number>> = {};
   onChange: () => void = () => {};
 
@@ -33,6 +37,7 @@ export class RobotLink {
   private writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
   private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   private zeroAt = 0; // performance.now() of device t = 0
+  private posTimer = 0;
   private enc = new TextEncoder();
 
   static supported() {
@@ -60,6 +65,7 @@ export class RobotLink {
     void this.readLoop();
     this.status = "connected";
     this.send("HELLO");
+    this.send("POS"); // a robot left powered on stays homed between connections
     // Keep the firmware's motion profile identical to what the planner assumed.
     this.send(`CFG ${ROBOT.carriageSpeedMm} ${ROBOT.carriageAccelMm} ${WHITE_KEY_MM} ${Math.round(ROBOT.strikeTime * 1000)} ${Math.round(ROBOT.holdDuty * 100)}`);
     this.onChange();
@@ -96,7 +102,10 @@ export class RobotLink {
           buf = buf.slice(nl + 1);
           if (!line) continue;
           if (line.startsWith("V2P")) this.device = line;
-          if (line === "HOMED") this.homed = true;
+          if (line === "HOMED") this.send("POS");
+          if (line.startsWith("POS ")) this.readPos(line);
+          // Some errors (lost steps, hands too close) unhome the robot: read its state again.
+          if (line.startsWith("ERR")) this.send("POS");
           this.note(`← ${line}`);
         }
       }
@@ -109,10 +118,19 @@ export class RobotLink {
     }
   }
 
+  /** `POS B <keys> T <keys> END <bass> <treble> homed|not-homed` */
+  private readPos(line: string) {
+    const f = line.split(" ");
+    const b = Number(f[2]);
+    const t = Number(f[4]);
+    this.homed = f[8] === "homed";
+    this.pos = this.homed && Number.isFinite(b) && Number.isFinite(t) ? { bass: b, treble: t } : {};
+  }
+
   send(line: string) {
     if (!this.writer) return;
     void this.writer.write(this.enc.encode(line + "\n")).catch(() => {});
-    if (!line.startsWith("S ") && !line.startsWith("M ")) this.note(`→ ${line}`);
+    if (!line.startsWith("S ") && !line.startsWith("M ") && line !== "POS") this.note(`→ ${line}`);
   }
 
   private t(perfMs: number) {
@@ -132,6 +150,21 @@ export class RobotLink {
     this.send("HOME");
   }
 
+  /** The hands were put at their home ends by hand (no end stops wired): take that as home. */
+  setHome() {
+    this.homed = false;
+    this.pos = {};
+    this.send("SETHOME");
+  }
+
+  /** Motors off, so the hands slide by hand; the robot is unhomed until Home or Set home here. */
+  free() {
+    this.homed = false;
+    this.pos = {};
+    this.send("FREE");
+    this.onChange();
+  }
+
   move(c: CarriageId, pos: number, perfMs: number) {
     this.pos[c] = pos;
     this.send(`M ${CODE[c]} ${pos} ${this.t(perfMs)}`);
@@ -141,7 +174,10 @@ export class RobotLink {
     this.send(`S ${CODE[c]} ${channel} ${this.t(perfMs)} ${Math.max(1, Math.round(durMs))} ${pwm}`);
   }
 
+  /** Stop playing. The carriages may stop short of where they were sent, so their places are read back once they are still. */
   stop() {
     this.send("STOP");
+    window.clearTimeout(this.posTimer);
+    this.posTimer = window.setTimeout(() => this.send("POS"), 500);
   }
 }
