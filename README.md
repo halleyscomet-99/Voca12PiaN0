@@ -6,7 +6,7 @@ An interactive robotic piano accompanist combining music processing, data-driven
 [![Website](https://img.shields.io/badge/UI_Website-ff8cc6?style=for-the-badge&logo=vercel&logoColor=white)][live]
 [![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)][youtube]
 
-![Demo Video](media/Demo.mp4)
+https://github.com/user-attachments/assets/aacdaad4-1553-4352-8e96-a622a365c4c9
 
 ## Repo structure
 
