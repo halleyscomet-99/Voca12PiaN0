@@ -25,4 +25,4 @@ Renders of the assembly. GitHub does not play videos stored in the repository in
 
 | White-key finger (exploded) | Black-key finger (exploded) | Carriage (exploded) |
 |---|---|---|
-| <img width="200" height="112" alt="WhiteKEY_Explosion" src="https://github.com/user-attachments/assets/984368cc-4921-4092-8dd8-0e5f46bd26c5" />| <img width="200" height="112" alt="BlackKEY_Explosion" src="https://github.com/user-attachments/assets/a4b2f620-c3d3-45c2-8641-a7ff8294ab9a" /> | <img width="200" height="112" alt="cArriage_Explosion" src="https://github.com/user-attachments/assets/1675ab57-f4de-499c-b6e5-cb75f68fb6c9" />|
+| <img width="400" height="225" alt="WhiteKEY_Explosion" src="https://github.com/user-attachments/assets/984368cc-4921-4092-8dd8-0e5f46bd26c5" />| <img width="400" height="225" alt="BlackKEY_Explosion" src="https://github.com/user-attachments/assets/a4b2f620-c3d3-45c2-8641-a7ff8294ab9a" /> | <img width="400" height="225" alt="cArriage_Explosion" src="https://github.com/user-attachments/assets/1675ab57-f4de-499c-b6e5-cb75f68fb6c9" />|
