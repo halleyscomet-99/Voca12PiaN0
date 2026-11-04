@@ -1,12 +1,12 @@
-# Vocal2Piano: A voice-controlled robot piano accompanist.
+# Vocal2Piano: A Voice-Controlled Robot Piano Accompanist
 
 An interactive robotic piano accompanist combining music processing, data-driven harmonization, motion planning, and real-time human-robot interaction.
 
-<!-- [![Figma UI](https://img.shields.io/badge/Figma-A259FF?style=for-the-badge&logo=figma&logoColor=white)][figma] -->
-[![Website](https://img.shields.io/badge/UI_Website-ff8cc6?style=for-the-badge&logo=vercel&logoColor=white)][live]
-[![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)][youtube]
+<!-- [![Figma UI](https://img.shields.io/badge/Figma-A259FF?style=flat&logo=figma&logoColor=white)][figma] -->
+[![Website](https://img.shields.io/badge/Website-ff8cc6?style=flat&logo=Safari&logoColor=white)][live]
+[![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=flat&logo=youtube&logoColor=white)][youtube]
 
-![Demo Video](media/Demo.mp4)
+![Demo Video](media/Demo.gif)
 
 ## Repo structure
 
@@ -21,7 +21,7 @@ An interactive robotic piano accompanist combining music processing, data-driven
 
 ## How it works
 
-![System block diagram: the performance planning software sends timed commands over USB to the C0nTrollER board, which drives the two robot players on the keyboard](media/system-diagram.svg)
+![System block diagram](media/system-diagram.svg)
 
 The system has three layers. Software on a computer decides what to play and when, a controller board turns timed commands into motor steps and solenoid pulses, and two robot players on the keyboard move and strike the keys.
 
