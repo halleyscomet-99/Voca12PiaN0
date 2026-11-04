@@ -11,27 +11,7 @@ Two KiCad boards: one controller and two identical solenoid boards, one per hand
 
 ## System Architecture
 
-```
-        12 V DC (5 A supply, barrel jack)
-              │
-   ┌──────────▼────────────────────────────────────────┐
-   │ C0nTrollER                                        │
-   │  5 A fuse → SMBJ16A TVS → PMOS reverse-polarity   │
-   │  → 12 V rail (4700 µF bulk)                       │
-   │  MP1584 buck → 5 V                                │
-   │  Teensy 4.1 ─ STEP/DIR/EN ─► TMC2209 ×2 ─► NEMA17 ×2
-   │             ◄─ ENDSTOP ×2                         │
-   │             ─ I²C (SDA/SCL, 4.7 kΩ pull-ups) ─┐   │
-   └───────────────────────────────────────────────┼───┘
-         7-pin JST-XH (TREBLE)        7-pin JST-XH (BASS)
-                 ▼                              ▼
-          ┌─────────────┐                ┌─────────────┐
-          │ PLAyeRs     │                │ PLAyeRs     │
-          │ PCA9685 0x41│                │ PCA9685 0x40│
-          │ 13× IRLZ34N │                │ 13× IRLZ34N │
-          └──────┬──────┘                └──────┬──────┘
-           13 solenoids                    13 solenoids
-```
+![PCB block diagram](media/pcb-architecture.svg)
 
 Both PLAyeRs boards share one I²C bus. The board with the A0 solder jumper bridged is `0x41` (Treble); the one without it is `0x40` (Bass).
 

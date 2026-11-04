@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 880" width="1100" height="880" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#3d3d4a"/>
+    </marker>
+    <marker id="p" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#d6455d"/>
+    </marker>
+    <style>
+      .band { stroke-width: 1.5; }
+      .tag { font-size: 13px; font-weight: 700; letter-spacing: .08em; }
+      .box { fill: #ffffff; stroke: #4a4a58; stroke-width: 1.5; }
+      .t { font-size: 15px; font-weight: 700; fill: #1f1f2a; text-anchor: middle; }
+      .s { font-size: 12.5px; fill: #5a5a68; text-anchor: middle; }
+      .w { fill: none; stroke: #3d3d4a; stroke-width: 1.8; marker-end: url(#a); }
+      .pw { fill: none; stroke: #d6455d; stroke-width: 1.8; stroke-dasharray: 6 4; marker-end: url(#p); }
+      .l { font-size: 12px; fill: #3d3d4a; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
+      .lp { font-size: 12px; fill: #d6455d; font-weight: 600; paint-order: stroke; stroke: #ffffff; stroke-width: 4px; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <rect width="1100" height="880" rx="16" fill="#ffffff"/>
+
+  <!-- Supply -->
+  <rect class="box" x="40" y="20" width="168" height="64" rx="8"/>
+  <text class="t" x="124" y="47">12 V DC supply</text>
+  <text class="s" x="124" y="67">5 A · barrel jack</text>
+  <path class="pw" d="M124 84V154"/>
+
+  <!-- Controller board -->
+  <rect class="band" x="16" y="110" width="1068" height="360" rx="12" fill="#ecf8ef" stroke="#8fcc9f"/>
+  <text class="tag" x="1064" y="136" fill="#2f7a45" text-anchor="end">C0nTrollER BOARD</text>
+
+  <rect class="box" x="40" y="156" width="168" height="72" rx="8"/>
+  <text class="t" x="124" y="188">5 A fuse</text>
+  <text class="s" x="124" y="208">overcurrent</text>
+
+  <rect class="box" x="253" y="156" width="168" height="72" rx="8"/>
+  <text class="t" x="337" y="188">SMBJ16A TVS</text>
+  <text class="s" x="337" y="208">surge clamp</text>
+
+  <rect class="box" x="466" y="156" width="168" height="72" rx="8"/>
+  <text class="t" x="550" y="188">PMOS FET</text>
+  <text class="s" x="550" y="208">reverse polarity guard</text>
+
+  <rect class="box" x="679" y="156" width="168" height="72" rx="8"/>
+  <text class="t" x="763" y="188">12 V rail</text>
+  <text class="s" x="763" y="208">4700 µF bulk</text>
+
+  <rect class="box" x="892" y="156" width="168" height="72" rx="8"/>
+  <text class="t" x="976" y="188">MP1584 buck</text>
+  <text class="s" x="976" y="208">12 V → 5 V</text>
+
+  <path class="pw" d="M208 192H251"/>
+  <path class="pw" d="M421 192H464"/>
+  <path class="pw" d="M634 192H677"/>
+  <path class="pw" d="M847 192H890"/>
+
+  <rect class="box" x="40" y="280" width="200" height="70" rx="8"/>
+  <text class="t" x="140" y="310">TMC2209 ×2</text>
+  <text class="s" x="140" y="330">stepper drivers</text>
+
+  <rect class="box" x="860" y="280" width="200" height="70" rx="8" fill="#fffbe8"/>
+  <text class="t" x="960" y="310">Teensy 4.1</text>
+  <text class="s" x="960" y="330">USB serial to web app</text>
+
+  <path class="pw" d="M700 228V250H140V278"/>
+  <text class="lp" x="420" y="244" text-anchor="middle">12 V motor power</text>
+  <path class="pw" d="M976 228V278"/>
+  <text class="lp" x="986" y="258">5 V</text>
+
+  <path class="w" d="M858 304H242"/>
+  <text class="l" x="550" y="298" text-anchor="middle">STEP · DIR · EN</text>
+
+  <rect class="box" x="388" y="396" width="200" height="54" rx="8"/>
+  <text class="t" x="488" y="419">TREBLE connector</text>
+  <text class="s" x="488" y="438">JST-XH 7-pin</text>
+
+  <rect class="box" x="792" y="396" width="200" height="54" rx="8"/>
+  <text class="t" x="892" y="419">BASS connector</text>
+  <text class="s" x="892" y="438">JST-XH 7-pin</text>
+
+  <path class="w" d="M960 350V380H488V394"/>
+  <path class="w" d="M892 380V394"/>
+  <text class="l" x="690" y="374" text-anchor="middle">I²C · SDA / SCL · 4.7 kΩ pull-ups</text>
+
+  <!-- Carriage motion (off-board) -->
+  <rect class="box" x="40" y="530" width="200" height="70" rx="8"/>
+  <text class="t" x="140" y="560">NEMA17 ×2</text>
+  <text class="s" x="140" y="580">belt-driven carriages</text>
+
+  <rect class="box" x="40" y="626" width="200" height="70" rx="8"/>
+  <text class="t" x="140" y="656">End stops ×2</text>
+  <text class="s" x="140" y="676">one per carriage</text>
+
+  <path class="w" d="M140 350V528"/>
+  <path class="w" d="M240 661H268V336H858"/>
+  <text class="l" x="550" y="330" text-anchor="middle">end stops ×2</text>
+
+  <!-- Treble player -->
+  <rect class="band" x="296" y="490" width="384" height="226" rx="12" fill="#fff3ea" stroke="#e9b78c"/>
+  <text class="tag" x="316" y="516" fill="#a35a1c">PLAyeRs · TREBLE</text>
+
+  <rect class="box" x="328" y="530" width="320" height="66" rx="8"/>
+  <text class="t" x="488" y="558">PCA9685 at 0x41</text>
+  <text class="s" x="488" y="578">16-ch PWM · A0 jumper bridged</text>
+
+  <rect class="box" x="328" y="630" width="320" height="66" rx="8"/>
+  <text class="t" x="488" y="658">13× IRLZ34N</text>
+  <text class="s" x="488" y="678">low-side switches · flyback diodes</text>
+
+  <path class="w" d="M488 450V528"/>
+  <path class="w" d="M488 596V628"/>
+
+  <!-- Bass player -->
+  <rect class="band" x="700" y="490" width="384" height="226" rx="12" fill="#fff3ea" stroke="#e9b78c"/>
+  <text class="tag" x="720" y="516" fill="#a35a1c">PLAyeRs · BASS</text>
+
+  <rect class="box" x="732" y="530" width="320" height="66" rx="8"/>
+  <text class="t" x="892" y="558">PCA9685 at 0x40</text>
+  <text class="s" x="892" y="578">16-ch PWM · A0 jumper open</text>
+
+  <rect class="box" x="732" y="630" width="320" height="66" rx="8"/>
+  <text class="t" x="892" y="658">13× IRLZ34N</text>
+  <text class="s" x="892" y="678">low-side switches · flyback diodes</text>
+
+  <path class="w" d="M892 450V528"/>
+  <path class="w" d="M892 596V628"/>
+
+  <!-- Solenoids (off-board) -->
+  <rect class="box" x="388" y="756" width="200" height="56" rx="8"/>
+  <text class="t" x="488" y="780">13 solenoids</text>
+  <text class="s" x="488" y="799">7 white · 6 black keys</text>
+  <path class="w" d="M488 696V754"/>
+
+  <rect class="box" x="792" y="756" width="200" height="56" rx="8"/>
+  <text class="t" x="892" y="780">13 solenoids</text>
+  <text class="s" x="892" y="799">7 white · 6 black keys</text>
+  <path class="w" d="M892 696V754"/>
+
+  <!-- Legend -->
+  <path class="w" d="M40 850H80"/>
+  <text x="90" y="854" font-size="12" fill="#3d3d4a">data and signals</text>
+  <path class="pw" d="M210 850H250"/>
+  <text x="260" y="854" font-size="12" fill="#d6455d">power</text>
+</svg>
