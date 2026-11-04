@@ -1,19 +1,9 @@
-# Web app
+# UI Web App
 
 ![The web app with the Songs and Rehearsal windows open](media/UI.png)
 
-The Vocal2Piano web app prepares a song, plans the robot's playing, and plays it on the real robot over USB. It runs in Chrome or Edge, which provide the microphone, the camera and the USB serial link (Web Serial). Nothing is installed on the computer.
 
-## Run
-
-```bash
-cd site
-npm install
-npm run dev      # http://localhost:5173
-npm run build    # static build in dist/, served as is by any static host (Vercel, GitHub Pages)
-```
-
-Shortcuts: `Space` play/pause · `Home` back to the start · `Delete` leave the selected note out · `Esc` clear the selection.
+The [Vocal2Piano web app][live] prepares a song, plans the robot's playing, and plays it on the real robot over USB. It runs in Chrome or Edge, which provide the microphone, the camera and the USB serial link (Web Serial). Nothing is installed on the computer.
 
 ## From song to robot
 
@@ -104,3 +94,5 @@ media/                   screenshot for this README (not part of the build)
 - Repeats and voltas in sheet music are not expanded.
 - Listen has been measured with a synthetic voice fed in as the microphone.
 - The local songs under *My songs* only appear when the app runs from this folder; the web deployment leaves `local/` out.
+
+[live]: https://vocal2piano.vercel.app
