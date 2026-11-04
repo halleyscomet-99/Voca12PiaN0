@@ -1,10 +1,10 @@
-# Vocal2Piano: A voice-controlled robot piano accompanist.
+# Vocal2Piano: A Voice-Controlled Robot Piano Accompanist
 
 An interactive robotic piano accompanist combining music processing, data-driven harmonization, motion planning, and real-time human-robot interaction.
 
-<!-- [![Figma UI](https://img.shields.io/badge/Figma-A259FF?style=for-the-badge&logo=figma&logoColor=white)][figma] -->
-[![Website](https://img.shields.io/badge/UI_Website-ff8cc6?style=for-the-badge&logo=vercel&logoColor=white)][live]
-[![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white)][youtube]
+<!-- [![Figma UI](https://img.shields.io/badge/Figma-A259FF?style=flat&logo=figma&logoColor=white)][figma] -->
+[![Website](https://img.shields.io/badge/Website-ff8cc6?style=flat&logo=Safari&logoColor=white)][live]
+[![YouTube](https://img.shields.io/badge/YouTube-FF0000?style=flat&logo=youtube&logoColor=white)][youtube]
 
 https://github.com/user-attachments/assets/386b995f-e21b-4830-a7e3-52de3a833fb9
 
